@@ -1,14 +1,19 @@
 import os
+import sys
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from models.bigram_model import BigramLanguageModel
 from config.configurator import get_config
 
+# Ensure the current working directory is the script's directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(script_dir, '..'))
+
 # Load configuration
 config = get_config()
 
 # Load your dataset
-with open('../data/your_dataset.txt', 'r', encoding='utf-8') as f:
+with open(os.path.join(script_dir, '../data/your_dataset.txt'), 'r', encoding='utf-8') as f:
     text = f.read()
 
 # Preprocess the dataset
