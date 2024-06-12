@@ -1,14 +1,19 @@
 import os
+import sys
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from models.bigram_model import BigramLanguageModel
 from config.configurator import get_config
 
+# Ensure the current working directory is the script's directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(script_dir))
+
 # Load configuration
 config = get_config()
 
 # Load your dataset
-with open('../data/your_dataset.txt', 'r', encoding='utf-8') as f:
+with open(os.path.join(script_dir, '../data/your_dataset.txt'), 'r', encoding='utf-8') as f:
     text = f.read()
 
 # Preprocess the dataset
@@ -30,6 +35,27 @@ model = model.to(config.device)
 
 # Define optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate)
+
+def get_batch(split):
+    data = train_data if split == 'train' else val_data
+    ix = torch.randint(len(data) - config.block_size, (config.batch_size,))
+    x = torch.stack([data[i:i+config.block_size] for i in ix])
+    y = torch.stack([data[i+1:i+config.block_size+1] for i in ix])
+    x, y = x.to(config.device), y.to(config.device)
+    return x, y
+
+def estimate_loss():
+    out = {}
+    model.eval()
+    for split in ['train', 'val']:
+        losses = torch.zeros(config.eval_iters)
+        for k in range(config.eval_iters):
+            X, Y = get_batch(split)
+            logits, loss = model(X, Y)
+            losses[k] = loss.item()
+        out[split] = losses.mean()
+    model.train()
+    return out
 
 # Training loop
 for epoch in range(config.max_iters):
